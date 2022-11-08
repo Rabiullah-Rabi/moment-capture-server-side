@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require("mongodb");
 app.use(cors());
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -22,12 +22,21 @@ async function run() {
   try {
     const serviceCollection = client
       .db("moment-capture")
-      .collection("services");
+          .collection("services");
+      
+      //Serve all services
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find({});
       const services = await cursor.toArray();
-      res.send({services });
+      res.send({ services });
     });
+      //Serve 3 for home services
+    app.get("/servicesHome", async (req, res) => {
+      const cursor = serviceCollection.find({});
+        const services = await cursor.limit(3).toArray();
+      res.send({ services });
+    });
+      
   } finally {
   }
 }

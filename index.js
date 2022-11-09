@@ -30,6 +30,7 @@ function verifyJwToken(req, res, next) {
       return res.status(401).send({ message: "Unauthorized Access" });
     }
     req.decoded = decoded;
+    console.log(decoded);
     next();
   });
 }
@@ -43,7 +44,7 @@ async function run() {
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "1d",
       });
       res.send({ token });
     });
@@ -102,15 +103,15 @@ async function run() {
       res.send(result);
     });
     //reviews of a  user
-    app.get("/reviewsbyuser/:id", verifyJwToken, async (req, res) => {
+    app.get("/reviewsbyuser/:id",verifyJwToken, async (req, res) => {
       const decoded = req.decoded;
       const id = req.params.id;
-      console.log(decoded.uid);
       if (decoded.uid !== id) {
         return res.status(403).send({ message: "Access Forbidden" });
       }
       const cursor = reviewCollection.find({ userId: id });
       const result = await cursor.sort({ review_date: -1 }).toArray();
+      // console.log(result);
       res.send(result);
     });
     //Delete review by user

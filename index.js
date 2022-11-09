@@ -24,26 +24,32 @@ async function run() {
       .db("moment-capture")
       .collection("services");
     const reviewCollection = client.db("moment-capture").collection("reviews");
-
     //Serve all services
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find({});
-      const services = await cursor.toArray();
+      const services = await cursor.sort({inserted_date: -1}).toArray();
       res.send({ services });
     });
     //Serve 3 for home services
     app.get("/servicesHome", async (req, res) => {
       const cursor = serviceCollection.find({});
-      const services = await cursor.limit(3).toArray();
+      const services = await cursor.sort({inserted_date: -1}).limit(3).toArray();
       res.send({ services });
     });
     //Serve service details
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
-      const service = await serviceCollection.findOne({ _id: ObjectId(id) });
+      const service = await serviceCollection.findOne({ _id: ObjectId(id)});
+      console.log(service);
       res.send({ service });
     });
 
+    //api for ADD a Service
+    app.post("/services", async (req, res) => {
+      const service = req.body;
+      const result = await serviceCollection.insertOne(service);
+      res.send(result);
+    });
     //api for post review
     app.post("/review", async (req, res) => {
       const review = req.body;

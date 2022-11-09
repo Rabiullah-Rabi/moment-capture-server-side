@@ -40,7 +40,6 @@ async function run() {
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
       const service = await serviceCollection.findOne({ _id: ObjectId(id)});
-      console.log(service);
       res.send({ service });
     });
 
@@ -59,7 +58,7 @@ async function run() {
     //Serve all reviews
     app.get("/reviews", async (req, res) => {
       const cursor = reviewCollection.find({});
-      const result = await cursor.toArray();
+      const result = await cursor.sort({review_date: -1}).toArray();
       res.send(result);
     });
     //serve a review
@@ -69,18 +68,18 @@ async function run() {
       const review = await reviewCollection.findOne(query);
       res.send(review);
     });
-    //review of a  Service
+    //reviews of a  Service
     app.get("/reviews/:id", async (req, res) => {
       const id = req.params.id;
       const cursor = reviewCollection.find({ service: id });
-      const result = await cursor.toArray();
+      const result = await cursor.sort({review_date: -1}).toArray();
       res.send(result);
     });
-    //review of a  user
+    //reviews of a  user
     app.get("/reviewsbyuser/:id", async (req, res) => {
       const id = req.params.id;
       const cursor = reviewCollection.find({ userId: id });
-      const result = await cursor.toArray();
+      const result = await cursor.sort({review_date: -1}).toArray();
       res.send(result);
     });
     //Delete review by user

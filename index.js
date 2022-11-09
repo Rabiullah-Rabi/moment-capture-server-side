@@ -6,7 +6,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 app.use(cors());
 require("dotenv").config();
 const port = process.env.PORT || 5000;
-
+const jwt = require("jsonwebtoken");
 app.get("/", (req, res) => {
   res.send("api is running");
 });
@@ -18,28 +18,54 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function verifyJwToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.TOKEN_SECRET, function (error, decoded) {
+    if (error) {
+      return res.status(401).send({ message: "Unauthorized Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 async function run() {
   try {
     const serviceCollection = client
       .db("moment-capture")
       .collection("services");
     const reviewCollection = client.db("moment-capture").collection("reviews");
+    // jwt token
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
     //Serve all services
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find({});
-      const services = await cursor.sort({inserted_date: -1}).toArray();
+      const services = await cursor.sort({ inserted_date: -1 }).toArray();
       res.send({ services });
     });
     //Serve 3 for home services
     app.get("/servicesHome", async (req, res) => {
       const cursor = serviceCollection.find({});
-      const services = await cursor.sort({inserted_date: -1}).limit(3).toArray();
+      const services = await cursor
+        .sort({ inserted_date: -1 })
+        .limit(3)
+        .toArray();
       res.send({ services });
     });
     //Serve service details
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
-      const service = await serviceCollection.findOne({ _id: ObjectId(id)});
+      const service = await serviceCollection.findOne({ _id: ObjectId(id) });
       res.send({ service });
     });
 
@@ -58,7 +84,7 @@ async function run() {
     //Serve all reviews
     app.get("/reviews", async (req, res) => {
       const cursor = reviewCollection.find({});
-      const result = await cursor.sort({review_date: -1}).toArray();
+      const result = await cursor.sort({ review_date: -1 }).toArray();
       res.send(result);
     });
     //serve a review
@@ -72,14 +98,19 @@ async function run() {
     app.get("/reviews/:id", async (req, res) => {
       const id = req.params.id;
       const cursor = reviewCollection.find({ service: id });
-      const result = await cursor.sort({review_date: -1}).toArray();
+      const result = await cursor.sort({ review_date: -1 }).toArray();
       res.send(result);
     });
     //reviews of a  user
-    app.get("/reviewsbyuser/:id", async (req, res) => {
+    app.get("/reviewsbyuser/:id", verifyJwToken, async (req, res) => {
+      const decoded = req.decoded;
       const id = req.params.id;
+      console.log(decoded.uid);
+      if (decoded.uid !== id) {
+        return res.status(403).send({ message: "Access Forbidden" });
+      }
       const cursor = reviewCollection.find({ userId: id });
-      const result = await cursor.sort({review_date: -1}).toArray();
+      const result = await cursor.sort({ review_date: -1 }).toArray();
       res.send(result);
     });
     //Delete review by user
